@@ -1,0 +1,13 @@
+file;line start;end line;type;indentation;line start;Condition;Normalized Condition
+./drivers/of/unittest.c;473;489;if;0;473;CONFIG_OF_DYNAMIC;CONFIG_OF_DYNAMIC
+./drivers/of/unittest.c;494;543;if;0;494;CONFIG_OF_DYNAMIC;CONFIG_OF_DYNAMIC
+./drivers/of/unittest.c;943;1921;if;0;943;CONFIG_OF_OVERLAY;CONFIG_OF_OVERLAY
+./drivers/of/unittest.c;1012;1040;if;1;1012;(CONFIG_I2C);((CONFIG_I2C)) && (CONFIG_OF_OVERLAY)
+./drivers/of/unittest.c;1040;1045;else;1;1012;;(!((CONFIG_I2C))) && (CONFIG_OF_OVERLAY)
+./drivers/of/unittest.c;1536;1845;if;1;1536;(CONFIG_I2C) && ((CONFIG_OF_OVERLAY) || (CONFIG_OF_OVERLAY_MODULE));((CONFIG_I2C) && ((CONFIG_OF_OVERLAY) || (CONFIG_OF_OVERLAY_MODULE))) && (CONFIG_OF_OVERLAY)
+./drivers/of/unittest.c;1674;1768;if;2;1674;(CONFIG_I2C_MUX);((CONFIG_I2C_MUX)) && (((CONFIG_I2C) && ((CONFIG_OF_OVERLAY) || (CONFIG_OF_OVERLAY_MODULE))) && (CONFIG_OF_OVERLAY))
+./drivers/of/unittest.c;1784;1789;if;2;1784;(CONFIG_I2C_MUX);((CONFIG_I2C_MUX)) && (((CONFIG_I2C) && ((CONFIG_OF_OVERLAY) || (CONFIG_OF_OVERLAY_MODULE))) && (CONFIG_OF_OVERLAY))
+./drivers/of/unittest.c;1796;1798;if;2;1796;(CONFIG_I2C_MUX);((CONFIG_I2C_MUX)) && (((CONFIG_I2C) && ((CONFIG_OF_OVERLAY) || (CONFIG_OF_OVERLAY_MODULE))) && (CONFIG_OF_OVERLAY))
+./drivers/of/unittest.c;1845;1850;else;1;1536;;(!((CONFIG_I2C) && ((CONFIG_OF_OVERLAY) || (CONFIG_OF_OVERLAY_MODULE)))) && (CONFIG_OF_OVERLAY)
+./drivers/of/unittest.c;1903;1913;if;1;1903;(CONFIG_I2C);((CONFIG_I2C)) && (CONFIG_OF_OVERLAY)
+./drivers/of/unittest.c;1921;1923;else;0;943;;!(CONFIG_OF_OVERLAY)
