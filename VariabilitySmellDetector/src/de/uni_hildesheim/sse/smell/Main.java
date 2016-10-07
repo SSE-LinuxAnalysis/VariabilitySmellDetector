@@ -8,6 +8,7 @@ import de.uni_hildesheim.sse.smell.filter.kaestraints.NoDominatingFilter;
 import de.uni_hildesheim.sse.smell.filter.kaestraints.PcSmellDetector;
 import de.uni_hildesheim.sse.smell.filter.kaestraints.PresenceConditionFinder;
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.AbsoluteNestedDependsFinder;
+import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.InconsistentParentFilter;
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.NestedDependsFinder;
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.PaperSmellDetector;
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.SmellDetector;
@@ -71,8 +72,8 @@ public class Main {
     public static void main(String[] args) throws Exception {
 //        paperRunWitouthMakemodel(BUSYBOX_V_1_24_2, BUSYBOX_ARCH); // TODO need to be fixed first!
 //        paperRunWithMakemodel(LINUX_4_4_1, "nios2");
-//        paperRunWithMakemodel(LINUX_4_5_2, "x86");
-        kaestraintsRun(LINUX_4_4_1, "x86");
+        paperRunWithMakemodel(LINUX_4_4_1, "x86");
+//        kaestraintsRun(LINUX_4_4_1, "x86");
 //        variableFinderRun(OUTPUT_FOLDER + "linux-4.4.1/x86.kaestraints.result.csv",
 //                "C:/localUserFiles/krafczyk/research/linux_versions/linux-4.4.1",
 //                OUTPUT_FOLDER + "locations.test.csv");
@@ -129,6 +130,7 @@ public class Main {
         pipeline.addFilter(new CsvPrinter(candidates));
 
         pipeline.addFilter(new AbsoluteNestedDependsFinder(candidates, structure, makemodelExtended, true));
+        pipeline.addFilter(new InconsistentParentFilter());
         pipeline.addFilter(new PaperSmellDetector(kconfig, null));
         pipeline.addFilter(new CsvPrinter(result));
 
