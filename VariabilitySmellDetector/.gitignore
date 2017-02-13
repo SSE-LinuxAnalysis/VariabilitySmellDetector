@@ -1,1 +1,6 @@
 /bin/
+
+/output
+/input
+!/output/linux-4.4.1
+!/input/linux-4.4.1
