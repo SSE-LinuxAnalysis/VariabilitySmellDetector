@@ -87,7 +87,7 @@ public class RedundantSolutionFilter implements IFilter {
                 Solution s1 = solutions.get(i);
                 Solution s2 = solutions.get(j);
 
-                System.out.println("Tesing " + s1 + " & " + s2);
+//                System.out.println("Testing " + s1 + " & " + s2);
                 if (s1.equals(s2)) {
                     solutions.remove(j);
                     j--;

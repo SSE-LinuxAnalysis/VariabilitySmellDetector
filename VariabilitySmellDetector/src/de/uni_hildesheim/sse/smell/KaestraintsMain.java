@@ -20,7 +20,7 @@ public class KaestraintsMain {
         pipeline.addFilter(new VariablePresenceConditionsReader(pcPath, false));
         
         pipeline.addFilter(new NoDominatingFilter());
-        pipeline.addFilter(new PcSmellDetector(dimacsPath));
+        pipeline.addFilter(new PcSmellDetector(dimacsPath, 1));
         
         pipeline.addFilter(new CsvPrinter(result));
         

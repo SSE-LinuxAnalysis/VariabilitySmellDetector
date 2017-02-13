@@ -79,6 +79,8 @@ public class MakeModelExtender implements IFilter {
             if (null != fileName && !consideredFiles.contains(fileName)
                 && null != condition && !condition.isEmpty()) {
                 
+                // System.out.println("[Debug] Adding file that doesn't contain any other PCs: " + fileName);
+                
                 ConditionBlock newBlock = new ConditionBlock(fileName, 0, 99999,
                     ConditionType.IF, 0, 0, condition, condition);
                 result.add(newBlock);
@@ -105,10 +107,12 @@ public class MakeModelExtender implements IFilter {
             if (previousFile == null || !currentFile.equals(previousFile)) {
                 currentCondition = filePresenceConditions.get(currentFile);
                 if (currentCondition == null) {
-//                    System.err.println("No presence condition for: " + block.getFilename());
+//                    System.out.println("[Warning ]No Kbuild PC for: " + block.getFilename() + ", ignoring all PCs inside of it");
                     currentCondition = "";
                     ignoreFile = true;
                 } else {
+                    // System.out.println("[Debug] Expanding file with Kbuild PC: " + block.getFilename());
+                    
                     ignoreFile = false;
                 }
                 if (!currentCondition.equals("")) {

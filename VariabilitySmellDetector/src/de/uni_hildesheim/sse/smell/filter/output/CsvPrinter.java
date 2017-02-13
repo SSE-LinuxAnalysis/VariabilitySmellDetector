@@ -22,18 +22,32 @@ public class CsvPrinter implements IFilter {
 
     private PrintWriter out;
     
+    private boolean writeHeader;
+    
+    private boolean close;
+    
     /**
      * @param out The stream to write the CSV output to.
      */
     public CsvPrinter(PrintStream out) {
-        this.out = new PrintWriter(out);
+        this(new PrintWriter(out));
+    }
+    
+    public CsvPrinter(PrintStream out, boolean writeHeader, boolean close) {
+        this(new PrintWriter(out), writeHeader, close);
     }
     
     /**
      * @param out The writer to write the CSV output to.
      */
     public CsvPrinter(PrintWriter out) {
+        this(out, true, true);
+    }
+    
+    public CsvPrinter(PrintWriter out, boolean writeHeader, boolean close) {
         this.out = out;
+        this.writeHeader = writeHeader;
+        this.close = close;
     }
     
     /**
@@ -48,9 +62,11 @@ public class CsvPrinter implements IFilter {
     public List<IDataElement> run(List<IDataElement> data, IProgressPrinter progressPrinter) throws WrongFilterException {
         progressPrinter.start("CsvPrinter", data.size());
         if (!data.isEmpty()) {
-            // Write header
             IDataElement element = data.get(0);
-            out.println(element.headertoCsvLine());
+            if (writeHeader) {
+                // Write header
+                out.println(element.headertoCsvLine());
+            }
             
             // Write Data
             out.println(element.toCsvLine());
@@ -61,7 +77,11 @@ public class CsvPrinter implements IFilter {
                 progressPrinter.finishedOne();
             }
         }
-        out.close();
+        if (close) {
+            out.close();
+        } else {
+            out.flush();
+        }
         return data;
     }
     

@@ -1,8 +1,29 @@
 package de.uni_hildesheim.sse.smell;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+
+import de.uni_hildesheim.sse.kernel_miner.code.SourceFile;
+import de.uni_hildesheim.sse.kernel_miner.kbuild.KbuildMiner;
+import de.uni_hildesheim.sse.kernel_miner.util.Logger;
+import de.uni_hildesheim.sse.kernel_miner.util.ZipArchive;
+import de.uni_hildesheim.sse.kernel_miner.util.logic.Formula;
+import de.uni_hildesheim.sse.kernel_miner.util.logic.True;
+import de.uni_hildesheim.sse.smell.data.IDataElement;
+import de.uni_hildesheim.sse.smell.data.VariablePresenceConditions;
+import de.uni_hildesheim.sse.smell.data.VariableWithSolutions;
+import de.uni_hildesheim.sse.smell.filter.FilterException;
+import de.uni_hildesheim.sse.smell.filter.IFilter;
 import de.uni_hildesheim.sse.smell.filter.input.ConditionBlockReader;
 import de.uni_hildesheim.sse.smell.filter.input.ConfigVarFilter;
 import de.uni_hildesheim.sse.smell.filter.input.MakeModelExtender;
+import de.uni_hildesheim.sse.smell.filter.input.TypeChefArchiveReader;
 import de.uni_hildesheim.sse.smell.filter.input.VariableWithSolutionsReader;
 import de.uni_hildesheim.sse.smell.filter.kaestraints.NoDominatingFilter;
 import de.uni_hildesheim.sse.smell.filter.kaestraints.PcSmellDetector;
@@ -12,9 +33,11 @@ import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.InconsistentParen
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.NestedDependsFinder;
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.PaperSmellDetector;
 import de.uni_hildesheim.sse.smell.filter.old_permanent_parent.SmellDetector;
+import de.uni_hildesheim.sse.smell.filter.output.CsvDumper;
 import de.uni_hildesheim.sse.smell.filter.output.CsvPrinter;
+import de.uni_hildesheim.sse.smell.filter.util.DataSizePrinter;
 import de.uni_hildesheim.sse.smell.filter.util.RedundantSolutionFilter;
-import de.uni_hildesheim.sse.smell.filter.util.VariableLocationsFinder;
+import de.uni_hildesheim.sse.smell.filter.util.KaestraintSolutionAnnotator;
 import de.uni_hildesheim.sse.smell.filter.util.VisibleVariableFilter;
 
 @SuppressWarnings("unused")
@@ -72,11 +95,17 @@ public class Main {
     public static void main(String[] args) throws Exception {
 //        paperRunWitouthMakemodel(BUSYBOX_V_1_24_2, BUSYBOX_ARCH); // TODO need to be fixed first!
 //        paperRunWithMakemodel(LINUX_4_4_1, "nios2");
-        paperRunWithMakemodel(LINUX_4_4_1, "x86");
+//        paperRunWithMakemodel(LINUX_4_4_1, "x86");
+        
 //        kaestraintsRun(LINUX_4_4_1, "x86");
+        kaestraintResultPresentation(LINUX_4_4_1, "x86", "E:/research/linux_versions/linux-4.4.1");
+        
 //        variableFinderRun(OUTPUT_FOLDER + "linux-4.4.1/x86.kaestraints.result.csv",
 //                "C:/localUserFiles/krafczyk/research/linux_versions/linux-4.4.1",
 //                OUTPUT_FOLDER + "locations.test.csv");
+//        tmp();
+//        esxiTmp();
+//        esciTmp2();
     }
 
     private static void smellDetectorV1WithMakeModel(String version, String arch) throws Exception {
@@ -193,46 +222,119 @@ public class Main {
          * in any configuration (or more precisely has no "Feature Effect")
          */
         pipeline.addFilter(new NoDominatingFilter());
-        pipeline.addFilter(new PcSmellDetector(kconfig));
+        pipeline.addFilter(new PcSmellDetector(kconfig, result, 32));
         
-        pipeline.addFilter(new CsvPrinter(result));
+        // no output needed, because PcSmellDetector already writes it as it finds them
+//        pipeline.addFilter(new CsvPrinter(result));
         
         System.out.println("Starting to run for " + version + ", arch " + arch);
         pipeline.run();
     }
     
-    private static void splitKaestraintResultsByPrompt(String version, String arch) throws Exception {
-        String rsf = INPUT_FOLDER + version + "/" + arch + ".rsf";
+    /**
+     * Improves the result of a kaestraintsRun() by adding source locations, prompts, etc. 
+     */
+    private static void kaestraintResultPresentation(String version, String arch, String linuxTree) throws Exception {
+        String rsfFile = INPUT_FOLDER + version + "/" + arch + ".rsf";
         
-        String result = OUTPUT_FOLDER + version + "/" + arch + ".kaestraints.result.csv";
-        String withPrompt = OUTPUT_FOLDER + version + "/" + arch + ".kaestraints.result.with_prompt.csv";
-        String withoutPrompt = OUTPUT_FOLDER + version + "/" + arch + ".kaestraints.result.without_prompt.csv";
+        String kaestraintResult = OUTPUT_FOLDER + version + "/" + arch + ".kaestraints.result.csv";
+        String result = OUTPUT_FOLDER + version + "/" + arch + ".kaestraints.analysis_template.csv";
         
-        Pipeline p1 = new Pipeline(new StreamProgressPrinter());
-        p1.addFilter(new VariableWithSolutionsReader(result, true));
-        p1.addFilter(new RedundantSolutionFilter());
-        p1.addFilter(new VisibleVariableFilter(rsf, true));
-        p1.addFilter(new CsvPrinter(withPrompt));
-        
-        Pipeline p2 = new Pipeline(new StreamProgressPrinter());
-        p2.addFilter(new VariableWithSolutionsReader(result, true));
-        p2.addFilter(new RedundantSolutionFilter());
-        p2.addFilter(new VisibleVariableFilter(rsf, false));
-        p2.addFilter(new CsvPrinter(withoutPrompt));
-        
-        System.out.println("Starting to run for " + version + ", arch " + arch);
-        p1.run();
-        p2.run();
-    }
-    
-    private static void variableFinderRun(String pcFile, String linuxTree, String resultFile) throws Exception {
         Pipeline pipeline = new Pipeline(new StreamProgressPrinter());
         
-        pipeline.addFilter(new VariableWithSolutionsReader(pcFile, true));
-        pipeline.addFilter(new VariableLocationsFinder(linuxTree));
-        pipeline.addFilter(new CsvPrinter(resultFile));
+        pipeline.addFilter(new VariableWithSolutionsReader(kaestraintResult, true));
+        pipeline.addFilter(new RedundantSolutionFilter());
+        pipeline.addFilter(new KaestraintSolutionAnnotator(linuxTree, rsfFile));
+        pipeline.addFilter(new CsvPrinter(result));
         
         pipeline.run();
+    }
+    
+    private static void tmp() throws Exception {
+        Logger.init();
+        
+        Pipeline p = new Pipeline(new StreamProgressPrinter());
+        
+        p.addFilter(new TypeChefArchiveReader(
+                new File("C:/localUserFiles/krafczyk/research/typechef/typechef_output_linux-4.4.zip"),
+                new File("C:/localUserFiles/krafczyk/tmp/typechef_windows/kbuild_pcs/x86.pcs.txt")));
+        
+        p.addFilter(new CsvPrinter(OUTPUT_FOLDER + "/typechef_linux-4.4.pcs.csv"));
+        
+        p.addFilter(new NoDominatingFilter());
+        p.addFilter(new PcSmellDetector(INPUT_FOLDER + "linux-4.4/x86.dimacs", 1));
+        
+        p.addFilter(new CsvPrinter(OUTPUT_FOLDER + "/typechef_linux-4.4.result.csv"));
+        
+        p.run();
+    }
+    
+    private static void esxiTmp() throws Exception {
+        Logger.init();
+        
+        Pipeline p = new Pipeline(new StreamProgressPrinter());
+        
+        p.addFilter(new TypeChefArchiveReader(
+                new File("/home/adam/typechef_tests/tools/kernelminer/typechef_output_linux-4.4_test.zip"),
+                new File("/home/adam/typechef_tests/kbuild_pcs/linux-4.4/x86.pcs.txt")));
+        
+        
+        ZipArchive archive = new ZipArchive(new File("result_typechef_linux-4.4.zip"));
+        p.addFilter(new CsvDumper(new PrintStream(archive.getOutputStream(new File("pcs.csv")))));
+        
+//        p.addFilter(new CsvPrinter("typechef_linux-4.4.pcs.csv"));
+        
+//        p.addFilter(new NoDominatingFilter());
+//        p.addFilter(new PcSmellDetector("x86.dimacs"));
+//        
+//        p.addFilter(new CsvPrinter("typechef_linux-4.4.result.csv"));
+        
+        p.run();
+    }
+    
+    private static void esciTmp2() throws Exception {
+        Logger.init();
+        
+        ZipArchive archive = new ZipArchive(new File("result_typechef_linux-4.4.zip"));
+        BufferedReader in = new BufferedReader(new InputStreamReader(archive.getInputStream(new File("pcs.csv"))));
+        PrintStream out = new PrintStream(new FileOutputStream("typechef_linux-4.4.result.csv"));
+        
+        out.println(new VariableWithSolutions("").headertoCsvLine());
+        
+        // skip first line
+        in.readLine();
+        
+        String line;
+        while ((line = in.readLine()) != null) {
+            String[] parts = line.split(";");
+            line = null;
+            
+            final VariablePresenceConditions element = new VariablePresenceConditions(parts[0]);
+            for (int i = 1; i < parts.length; i++) {
+                element.addPresenceCondition(parts[i]);
+            }
+            
+            System.out.println("Running for " + element.getVariable() + " with " + element.getNumPresenceConditions() + " PCs");
+            
+            Pipeline pipeline = new Pipeline(new StreamProgressPrinter());
+            pipeline.addFilter(new IFilter() {
+                @Override
+                public List<IDataElement> run(List<IDataElement> data, IProgressPrinter progressPrinter) throws FilterException {
+                    ArrayList<IDataElement> result = new ArrayList<>(1);
+                    result.add(element);
+                    return result;
+                }
+            });
+            pipeline.addFilter(new NoDominatingFilter());
+            pipeline.addFilter(new PcSmellDetector("x86.dimacs", 1));
+            pipeline.addFilter(new DataSizePrinter());
+            pipeline.addFilter(new CsvPrinter(out, false, false));
+            
+            pipeline.run();
+        }
+        
+        out.close();
+        in.close();
     }
     
 }

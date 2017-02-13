@@ -24,6 +24,11 @@ import de.uni_hildesheim.sse.smell.util.RecursiveReplacingCnfConverter;
 import de.uni_hildesheim.sse.smell.util.VarNotFoundException;
 import de.uni_hildesheim.sse.smell.util.VariableToNumberConverter;
 import net.ssehub.easy.varModel.cst.ConstraintSyntaxTree;
+import net.ssehub.easy.varModel.cst.OCLFeatureCall;
+import net.ssehub.easy.varModel.cst.Variable;
+import net.ssehub.easy.varModel.model.DecisionVariableDeclaration;
+import net.ssehub.easy.varModel.model.datatypes.BooleanType;
+import net.ssehub.easy.varModel.model.datatypes.OclKeyWords;
 
 public abstract class AbstractSatSolverFilter implements IFilter {
 
@@ -89,8 +94,23 @@ public abstract class AbstractSatSolverFilter implements IFilter {
             // Temporarily (only for this iteration) add the constraint of the
             // smell candidate to the solver.
             // cleanUp() MUST BE CALLED BEFORE THE NEXT ITERATION!
-            for (ConstraintSyntaxTree cst : cnfParts) {
-                int[] numbers = varConverter.convertToDimacs(cst);
+            for (int i = 0; i < cnfParts.size(); i++) {
+                // TODO: HACK
+                int[] numbers = null;
+                do {
+                    try {
+                        numbers = varConverter.convertToDimacs(cnfParts.get(i));
+                    } catch (VarNotFoundException e) {
+                        if (e.getName().startsWith("CONFIG_")) {
+                            varConverter.addVarible(e.getName());
+                            cnfParts.add(new OCLFeatureCall(new Variable(
+                                    new DecisionVariableDeclaration(e.getName(), BooleanType.TYPE, null))
+                                    , OclKeyWords.NOT));
+                        } else {
+                            throw e;
+                        }
+                    }
+                } while (numbers == null);
                 /*IConstr constr =*/ solver.addClause(new VecInt(numbers));
                 // constr is null if the clause is a tautology
                 // (see javadoc comment of org.sat4j.minisat.core.
@@ -103,11 +123,11 @@ public abstract class AbstractSatSolverFilter implements IFilter {
             // This is thrown if the model is already not solvable
 //            cleanUp(constraints); // TODO: fix removing of constraints
             return false;
-        } catch (VarNotFoundException e) {
+//        } catch (VarNotFoundException e) {
             // This is thrown if the code constraints contain variables that
             // are not found in the VarModel.
 //            cleanUp(constraints); // TODO: fix removing of constraints
-            throw e;
+//            throw e;
         }
 
         boolean result = false;
